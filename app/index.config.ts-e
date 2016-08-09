@@ -1,0 +1,60 @@
+import IQService = angular.IQService;
+import {BackendConfigService} from './services/backend/backendConfig.service';
+
+/** @ngInject */
+export function config($logProvider: ng.ILogProvider, $locationProvider: ng.ILocationProvider,
+                       $httpProvider: ng.IHttpProvider, ngToastProvider: any, $compileProvider: ng.ICompileProvider) {
+
+  // disable debug in production
+  $compileProvider.debugInfoEnabled(false);
+
+  // enable log
+  $logProvider.debugEnabled(true);
+
+  // remove hashtag from url
+  $locationProvider.html5Mode(true);
+
+  /** @ngInject */
+  $httpProvider.interceptors.push(function($q: IQService, backendConfigService: BackendConfigService) {
+   return {
+     responseError: function(rejection: any) {
+       console.log('HTTP request failed.');
+       switch (rejection.status) {
+         case 403:
+           console.log('Unauthorized.');
+
+           localStorage.removeItem('authdata');
+           localStorage.removeItem('session');
+           localStorage.setItem('unauthorizedUrl', window.location.href);
+
+           if (localStorage.getItem('username') === null) {
+             if (window.location.hostname === 'localhost') {
+               window.location.href = '/login';
+             } else {
+               window.location.href = window.location.protocol + '//' + window.location.host.replace('app.', '') + '/unauthorized';
+             }
+           } else {
+            // do this to not have the requests intercepted by angular => prevent circular dependencies
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = () => {
+              if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+                window.location.href = backendConfigService.get().backEnd.backEndUrl + '/user/github/oauth/redirect';
+              } else {
+                window.location.href = window.location.protocol + '//' + window.location.host.replace('app.', '') + '/unauthorized';
+              }
+            };
+            xmlHttp.open('GET', backendConfigService.get().backEnd.backEndUrl + '/user/beta/' + localStorage.getItem('username'), true); // true for asynchronous
+            xmlHttp.send(null);
+           }
+           break;
+         default:
+           return $q.reject(rejection);
+       }
+     }
+   };
+  });
+
+  ngToastProvider.configure({
+    animation: 'slide'
+  });
+}

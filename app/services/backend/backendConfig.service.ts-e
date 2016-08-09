@@ -1,0 +1,47 @@
+export interface IEnvironmentConfig {
+  develop: IBackendConfig;
+  production: IBackendConfig;
+}
+
+export interface IBackendConfig {
+  backEnd: IBackEndConfig;
+}
+
+export interface IBackEndConfig {
+  backEndUrl: string;
+  backEndSocketUrl: string;
+  apiUrl: string;
+  proxyUrl: string;
+}
+
+export class BackendConfigService {
+  private environment: string = 'production';
+  private develop: IBackendConfig = {
+    backEnd: {
+      backEndUrl: 'http://localhost:42004',
+      backEndSocketUrl: 'ws://localhost:42004',
+      apiUrl: 'http://localhost:42004',
+      proxyUrl: 'http://localhost:42006/'
+    }
+  };
+  private production: IBackendConfig = {
+    backEnd: {
+      backEndUrl: 'https://core.extracty.com',
+      backEndSocketUrl: 'wss://core.extracty.com',
+      apiUrl: 'https://api.extracty.com',
+      proxyUrl: 'https://proxy.mastermind.do/'
+    }
+  };
+  private config: IEnvironmentConfig = {
+    develop: this.develop,
+    production: this.production
+  };
+
+  get(): IBackendConfig {
+    return this.config[this.environment];
+  }
+
+  backendUrl(): string {
+    return this.get().backEnd.backEndUrl;
+  }
+}
